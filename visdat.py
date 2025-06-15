@@ -49,18 +49,6 @@ try:
         df_co2_long = df_co2_long.dropna(subset=['Year'])
         # Gabungkan dengan data utama (df)
         df_merged = pd.merge(df, df_co2_long, on=['Country', 'Year'], how='left')
-        # Contoh visualisasi gabungan: Scatter plot Renewable Capacity vs CO2 Emissions
-        st.subheader("Kapasitas Terbarukan vs Emisi CO₂")
-        st.markdown("Visualisasi ini memperlihatkan hubungan antara kapasitas listrik terbarukan per kapita dan emisi CO₂ per negara per tahun.")
-        fig_scatter = px.scatter(
-            df_merged.dropna(subset=['CO2 Emissions (Mt CO2e)']),
-            x='Renewable Capacity (W/capita)',
-            y='CO2 Emissions (Mt CO2e)',
-            color='Country',
-            hover_data=['Year'],
-            title='Renewable Capacity vs CO2 Emissions'
-        )
-        st.plotly_chart(fig_scatter, use_container_width=True)
     else:
         st.warning("File data emisi CO₂ tidak ditemukan di folder project atau Downloads.")
 except Exception as e:
@@ -94,6 +82,96 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# =====================
+# STORYTELLING DASHBOARD CLIMATE CHANGE PASIFIK (PAKAI DATA YANG ADA)
+# =====================
+
+# BAGIAN 1: MASALAHNYA - DAMPAK PERUBAHAN IKLIM SUDAH TERJADI
+st.header("Bagian 1: Masalahnya - Dampak Perubahan Iklim Sudah Terjadi")
+st.markdown("""
+Perubahan iklim bukan isu masa depan, tapi kenyataan saat ini di Pasifik. Negara-negara seperti Vanuatu, Fiji, Tonga sangat rentan terhadap bencana alam yang diperparah oleh perubahan iklim.
+""")
+# Visual 1: (Pakai data kapasitas terbarukan sebagai proxy upaya mitigasi)
+st.subheader("Tren Kapasitas Listrik Terbarukan di Negara Pasifik")
+fig1 = px.line(
+    df.groupby(['Year', 'Country'], as_index=False).mean(),
+    x='Year',
+    y='Renewable Capacity (W/capita)',
+    color='Country',
+    markers=True,
+    labels={'Renewable Capacity (W/capita)': 'Watt per kapita', 'Year': 'Tahun'},
+    title='Tren Kapasitas Terbarukan per Negara'
+)
+fig1.update_layout(legend_title_text='Negara', hovermode='x unified')
+st.plotly_chart(fig1, use_container_width=True, key="line1")
+
+# BAGIAN 2: PENYEBABNYA - SIAPA YANG BERTANGGUNG JAWAB?
+st.header("Bagian 2: Penyebabnya - Siapa yang Bertanggung Jawab?")
+st.markdown("""
+Emisi karbon global adalah penyebab utama pemanasan global. Negara-negara Pasifik bukan penyumbang utama emisi, namun paling terdampak.
+""")
+# Visual 2: (Pakai data emisi CO2 per negara)
+if 'df_merged' in locals():
+    st.subheader("Emisi CO₂ Negara Pasifik")
+    fig2 = px.line(
+        df_merged.groupby(['Year', 'Country'], as_index=False).mean(),
+        x='Year',
+        y='CO2 Emissions (Mt CO2e)',
+        color='Country',
+        markers=True,
+        labels={'CO2 Emissions (Mt CO2e)': 'Emisi CO₂ (Mt)', 'Year': 'Tahun'},
+        title='Tren Emisi CO₂ per Negara'
+    )
+    fig2.update_layout(legend_title_text='Negara', hovermode='x unified')
+    st.plotly_chart(fig2, use_container_width=True, key="line2")
+else:
+    st.info("Data emisi CO₂ tidak tersedia. Silakan pastikan file CO₂ sudah ada di folder project.")
+
+# BAGIAN 3: SOLUSINYA - HARAPAN DARI ENERGI TERBARUKAN
+st.header("Bagian 3: Solusinya - Harapan dari Energi Terbarukan")
+st.markdown("""
+Energi terbarukan adalah solusi utama untuk mengurangi emisi. Negara-negara Pasifik juga aktif mengadopsi energi bersih.
+""")
+# Visual 3: Scatter plot hubungan kapasitas terbarukan dan emisi CO2
+if 'df_merged' in locals():
+    st.subheader("Korelasi Kapasitas Terbarukan & Emisi CO₂")
+    fig3 = px.scatter(
+        df_merged.dropna(subset=['CO2 Emissions (Mt CO2e)']),
+        x='Renewable Capacity (W/capita)',
+        y='CO2 Emissions (Mt CO2e)',
+        color='Country',
+        hover_data=['Year'],
+        title='Renewable Capacity vs CO2 Emissions'
+    )
+    st.plotly_chart(fig3, use_container_width=True, key="scatter_co2_story")
+else:
+    st.info("Data emisi CO₂ tidak tersedia. Silakan pastikan file CO₂ sudah ada di folder project.")
+
+# BAGIAN 4: KESIMPULAN - INSIGHT UTAMA
+st.header("Bagian 4: Kesimpulan - Insight Utama yang Menggugah")
+st.markdown("""
+Negara-negara Pasifik mengalami dampak besar dari perubahan iklim, namun kontribusi emisinya sangat kecil. Inilah ketidakadilan iklim global.
+""")
+# Insight otomatis per negara
+if 'df_merged' in locals():
+    negara_insight = []
+    for country in df_merged['Country'].unique():
+        sub = df_merged[df_merged['Country'] == country]
+        if len(sub) > 2 and sub['CO2 Emissions (Mt CO2e)'].notna().sum() > 2:
+            corr = sub[['Renewable Capacity (W/capita)', 'CO2 Emissions (Mt CO2e)']].corr().iloc[0,1]
+            if corr < -0.3:
+                negara_insight.append(f"<span style='color:#388e3c'><b>{country}</b>: Dampak kuat, peningkatan energi terbarukan diikuti penurunan emisi CO₂ (r = {corr:.2f})</span>")
+            elif corr > 0.3:
+                negara_insight.append(f"<span style='color:#d32f2f'><b>{country}</b>: Tidak berdampak/tidak efektif, peningkatan energi terbarukan diikuti kenaikan emisi CO₂ (r = {corr:.2f})</span>")
+            else:
+                negara_insight.append(f"<span style='color:#fbc02d'><b>{country}</b>: Dampak lemah/tidak jelas (r = {corr:.2f})</span>")
+    if negara_insight:
+        st.markdown("<br>".join(negara_insight), unsafe_allow_html=True)
+    else:
+        st.info("Belum cukup data untuk insight per negara.")
+else:
+    st.info("Insight per negara akan muncul jika data emisi CO₂ tersedia dan terfilter.")
 
 # Sidebar filter global
 st.sidebar.header("Filter Global")
