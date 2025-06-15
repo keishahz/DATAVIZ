@@ -83,115 +83,17 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# =====================
-# STORYTELLING DASHBOARD CLIMATE CHANGE PASIFIK (PAKAI DATA YANG ADA)
-# =====================
-
-# BAGIAN 1: MASALAHNYA - DAMPAK PERUBAHAN IKLIM SUDAH TERJADI
-st.header("Bagian 1: Masalahnya - Dampak Perubahan Iklim Sudah Terjadi")
-st.markdown("""
-Perubahan iklim bukan isu masa depan, tapi kenyataan saat ini di Pasifik. Negara-negara seperti Vanuatu, Fiji, Tonga sangat rentan terhadap bencana alam yang diperparah oleh perubahan iklim.
-""")
-# Visual 1: (Pakai data kapasitas terbarukan sebagai proxy upaya mitigasi)
-st.subheader("Tren Kapasitas Listrik Terbarukan di Negara Pasifik")
-fig1 = px.line(
-    df.groupby(['Year', 'Country'], as_index=False).mean(),
-    x='Year',
-    y='Renewable Capacity (W/capita)',
-    color='Country',
-    markers=True,
-    labels={'Renewable Capacity (W/capita)': 'Watt per kapita', 'Year': 'Tahun'},
-    title='Tren Kapasitas Terbarukan per Negara'
-)
-fig1.update_layout(legend_title_text='Negara', hovermode='x unified')
-st.plotly_chart(fig1, use_container_width=True, key="line1")
-
-# BAGIAN 2: PENYEBABNYA - SIAPA YANG BERTANGGUNG JAWAB?
-st.header("Bagian 2: Penyebabnya - Siapa yang Bertanggung Jawab?")
-st.markdown("""
-Emisi karbon global adalah penyebab utama pemanasan global. Negara-negara Pasifik bukan penyumbang utama emisi, namun paling terdampak.
-""")
-# Visual 2: (Pakai data emisi CO2 per negara)
-if 'df_merged' in locals():
-    st.subheader("Emisi CO₂ Negara Pasifik")
-    fig2 = px.line(
-        df_merged.groupby(['Year', 'Country'], as_index=False).mean(),
-        x='Year',
-        y='CO2 Emissions (Mt CO2e)',
-        color='Country',
-        markers=True,
-        labels={'CO2 Emissions (Mt CO2e)': 'Emisi CO₂ (Mt)', 'Year': 'Tahun'},
-        title='Tren Emisi CO₂ per Negara'
-    )
-    fig2.update_layout(legend_title_text='Negara', hovermode='x unified')
-    st.plotly_chart(fig2, use_container_width=True, key="line2")
-else:
-    st.info("Data emisi CO₂ tidak tersedia. Silakan pastikan file CO₂ sudah ada di folder project.")
-
-# BAGIAN 3: SOLUSINYA - HARAPAN DARI ENERGI TERBARUKAN
-st.header("Bagian 3: Solusinya - Harapan dari Energi Terbarukan")
-st.markdown("""
-Energi terbarukan adalah solusi utama untuk mengurangi emisi. Negara-negara Pasifik juga aktif mengadopsi energi bersih.
-""")
-# Visual 3: Scatter plot hubungan kapasitas terbarukan dan emisi CO2
-if 'df_merged' in locals():
-    st.subheader("Korelasi Kapasitas Terbarukan & Emisi CO₂")
-    fig3 = px.scatter(
-        df_merged.dropna(subset=['CO2 Emissions (Mt CO2e)']),
-        x='Renewable Capacity (W/capita)',
-        y='CO2 Emissions (Mt CO2e)',
-        color='Country',
-        hover_data=['Year'],
-        title='Renewable Capacity vs CO2 Emissions'
-    )
-    st.plotly_chart(fig3, use_container_width=True, key="scatter_co2_story")
-else:
-    st.info("Data emisi CO₂ tidak tersedia. Silakan pastikan file CO₂ sudah ada di folder project.")
-
-# BAGIAN 4: KESIMPULAN - INSIGHT UTAMA
-st.header("Bagian 4: Kesimpulan - Insight Utama yang Menggugah")
-st.markdown("""
-Negara-negara Pasifik mengalami dampak besar dari perubahan iklim, namun kontribusi emisinya sangat kecil. Inilah ketidakadilan iklim global.
-""")
-# Insight otomatis per negara
-if 'df_merged' in locals():
-    negara_insight = []
-    for country in df_merged['Country'].unique():
-        sub = df_merged[df_merged['Country'] == country]
-        if len(sub) > 2 and sub['CO2 Emissions (Mt CO2e)'].notna().sum() > 2:
-            corr = sub[['Renewable Capacity (W/capita)', 'CO2 Emissions (Mt CO2e)']].corr().iloc[0,1]
-            if corr < -0.3:
-                negara_insight.append(f"<span style='color:#388e3c'><b>{country}</b>: Dampak kuat, peningkatan energi terbarukan diikuti penurunan emisi CO₂ (r = {corr:.2f})</span>")
-            elif corr > 0.3:
-                negara_insight.append(f"<span style='color:#d32f2f'><b>{country}</b>: Tidak berdampak/tidak efektif, peningkatan energi terbarukan diikuti kenaikan emisi CO₂ (r = {corr:.2f})</span>")
-            else:
-                negara_insight.append(f"<span style='color:#fbc02d'><b>{country}</b>: Dampak lemah/tidak jelas (r = {corr:.2f})</span>")
-    if negara_insight:
-        st.markdown("<br>".join(negara_insight), unsafe_allow_html=True)
-    else:
-        st.info("Belum cukup data untuk insight per negara.")
-else:
-    st.info("Insight per negara akan muncul jika data emisi CO₂ tersedia dan terfilter.")
-
-# Sidebar filter global
-st.sidebar.header("Filter Global")
-selected_countries = st.sidebar.multiselect('Pilih negara', countries, default=countries)
-year_min, year_max = int(df['Year'].min()), int(df['Year'].max())
-selected_years = st.sidebar.slider('Pilih rentang tahun', year_min, year_max, (year_min, year_max))
-
-# Filter data global
-filtered = df[(df['Country'].isin(selected_countries)) & (df['Year'] >= selected_years[0]) & (df['Year'] <= selected_years[1])]
-
-st.header("Analisis Terintegrasi: Energi Terbarukan & Emisi CO₂ untuk Climate Change")
-st.markdown("""
-Dashboard ini menghubungkan tren kapasitas listrik terbarukan dengan emisi CO₂ untuk memahami kontribusi negara-negara Pasifik dalam mitigasi perubahan iklim.
-""")
+# (Bagian narasi dan visualisasi story-telling di atas DIHAPUS, hanya visualisasi interaktif dengan filter per chart yang ditampilkan di bawah)
 
 # --- Visualisasi 1: Tren Renewable Capacity ---
 st.subheader("Tren Kapasitas Listrik Terbarukan per Negara")
 st.markdown("Tren ini menunjukkan upaya transisi energi bersih di negara-negara Pasifik.")
+vis1_countries = st.multiselect('Pilih negara (visualisasi 1)', countries, default=countries, key='v1-country')
+vis1_year_min, vis1_year_max = int(df['Year'].min()), int(df['Year'].max())
+vis1_years = st.slider('Pilih rentang tahun (visualisasi 1)', vis1_year_min, vis1_year_max, (vis1_year_min, vis1_year_max), key='v1-year')
+vis1_filtered = df[(df['Country'].isin(vis1_countries)) & (df['Year'] >= vis1_years[0]) & (df['Year'] <= vis1_years[1])]
 fig1 = px.line(
-    filtered.groupby(['Year', 'Country'], as_index=False).mean(),
+    vis1_filtered.groupby(['Year', 'Country'], as_index=False).mean(),
     x='Year',
     y='Renewable Capacity (W/capita)',
     color='Country',
@@ -200,15 +102,17 @@ fig1 = px.line(
     title='Tren Kapasitas Terbarukan per Negara'
 )
 fig1.update_layout(legend_title_text='Negara', hovermode='x unified')
-st.plotly_chart(fig1, use_container_width=True)
-
+st.plotly_chart(fig1, use_container_width=True, key="line1-main")
 st.markdown("""
 Dari grafik di atas, kita dapat melihat negara mana yang paling aktif meningkatkan kapasitas listrik terbarukan. Selanjutnya, kita lihat apakah upaya ini berdampak pada penurunan emisi CO₂.
 """)
 
 # --- Visualisasi 2: Tren Emisi CO2 (jika data tersedia) ---
 if 'df_merged' in locals():
-    filtered_merged = df_merged[(df_merged['Country'].isin(selected_countries)) & (df_merged['Year'] >= selected_years[0]) & (df_merged['Year'] <= selected_years[1])]
+    vis2_countries = st.multiselect('Pilih negara (visualisasi 2)', countries, default=countries, key='v2-country')
+    vis2_year_min, vis2_year_max = int(df['Year'].min()), int(df['Year'].max())
+    vis2_years = st.slider('Pilih rentang tahun (visualisasi 2)', vis2_year_min, vis2_year_max, (vis2_year_min, vis2_year_max), key='v2-year')
+    filtered_merged = df_merged[(df_merged['Country'].isin(vis2_countries)) & (df_merged['Year'] >= vis2_years[0]) & (df_merged['Year'] <= vis2_years[1])]
     st.subheader("Tren Emisi CO₂ per Negara")
     st.markdown("Tren ini memperlihatkan perubahan emisi CO₂ seiring waktu. Penurunan emisi dapat menjadi indikasi keberhasilan transisi energi terbarukan.")
     fig2 = px.line(
@@ -221,13 +125,19 @@ if 'df_merged' in locals():
         title='Tren Emisi CO₂ per Negara'
     )
     fig2.update_layout(legend_title_text='Negara', hovermode='x unified')
-    st.plotly_chart(fig2, use_container_width=True)
-
+    st.plotly_chart(fig2, use_container_width=True, key="line2-main")
     st.markdown("""
 Bandingkan tren kedua grafik di atas: apakah negara yang kapasitas terbarukannya naik, emisinya juga turun?
 """)
+else:
+    st.warning("Data emisi CO₂ tidak tersedia. Silakan pastikan file CO₂ sudah ada di folder project.")
 
-    # --- Visualisasi 3: Scatter Plot Hubungan Renewable Capacity vs Emisi CO2 ---
+# --- Visualisasi 3: Scatter Plot Hubungan Renewable Capacity vs Emisi CO2 ---
+if 'df_merged' in locals():
+    vis3_countries = st.multiselect('Pilih negara (visualisasi 3)', countries, default=countries, key='v3-country')
+    vis3_year_min, vis3_year_max = int(df['Year'].min()), int(df['Year'].max())
+    vis3_years = st.slider('Pilih rentang tahun (visualisasi 3)', vis3_year_min, vis3_year_max, (vis3_year_min, vis3_year_max), key='v3-year')
+    filtered_merged = df_merged[(df_merged['Country'].isin(vis3_countries)) & (df_merged['Year'] >= vis3_years[0]) & (df_merged['Year'] <= vis3_years[1])]
     st.subheader("Korelasi Kapasitas Terbarukan & Emisi CO₂")
     st.markdown("Scatter plot berikut memperlihatkan hubungan langsung antara kapasitas listrik terbarukan dan emisi CO₂. Titik-titik mewakili negara-tahun.")
     fig3_scatter = px.scatter(
@@ -238,71 +148,31 @@ Bandingkan tren kedua grafik di atas: apakah negara yang kapasitas terbarukannya
         hover_data=['Year'],
         title='Renewable Capacity vs CO2 Emissions'
     )
-    st.plotly_chart(fig3_scatter, use_container_width=True, key="scatter_co2")
-
+    st.plotly_chart(fig3_scatter, use_container_width=True, key="scatter_co2-main")
     st.markdown("""
 Jika terlihat pola menurun (semakin tinggi kapasitas terbarukan, emisi makin rendah), berarti transisi energi bersih efektif menurunkan emisi penyebab climate change.
 """)
 else:
     st.warning("Data emisi CO₂ tidak tersedia. Silakan pastikan file CO₂ sudah ada di folder project.")
 
-# --- Insight Otomatis ---
-st.markdown("## Insight Otomatis")
-if 'df_merged' in locals() and not filtered_merged.empty:
-    # Korelasi sederhana
-    corr = filtered_merged[['Renewable Capacity (W/capita)', 'CO2 Emissions (Mt CO2e)']].corr().iloc[0,1]
-    if corr < -0.3:
-        st.success(f"Terdapat korelasi negatif antara kapasitas listrik terbarukan dan emisi CO₂ (r = {corr:.2f}). Ini mengindikasikan bahwa peningkatan energi terbarukan berkontribusi pada penurunan emisi penyebab climate change.")
-    elif corr > 0.3:
-        st.info(f"Terdapat korelasi positif antara kapasitas listrik terbarukan dan emisi CO₂ (r = {corr:.2f}). Perlu analisis lebih lanjut mengapa peningkatan energi terbarukan belum menurunkan emisi.")
-    else:
-        st.info(f"Korelasi antara kapasitas listrik terbarukan dan emisi CO₂ lemah (r = {corr:.2f}). Perlu analisis lebih lanjut faktor lain yang mempengaruhi emisi.")
-else:
-    st.info("Insight otomatis akan muncul jika data emisi CO₂ tersedia dan terfilter.")
-
-# --- Insight Otomatis Per Negara ---
-st.markdown("## Insight Per Negara: Dampak Energi Terbarukan terhadap Emisi CO₂")
-if 'df_merged' in locals() and not filtered_merged.empty:
-    negara_insight = []
-    for country in selected_countries:
-        sub = filtered_merged[filtered_merged['Country'] == country]
-        if len(sub) > 2 and sub['CO2 Emissions (Mt CO2e)'].notna().sum() > 2:
-            corr = sub[['Renewable Capacity (W/capita)', 'CO2 Emissions (Mt CO2e)']].corr().iloc[0,1]
-            if corr < -0.3:
-                negara_insight.append(f"<span style='color:#388e3c'><b>{country}</b>: Dampak kuat, peningkatan energi terbarukan diikuti penurunan emisi CO₂ (r = {corr:.2f})</span>")
-            elif corr > 0.3:
-                negara_insight.append(f"<span style='color:#d32f2f'><b>{country}</b>: Tidak berdampak/tidak efektif, peningkatan energi terbarukan diikuti kenaikan emisi CO₂ (r = {corr:.2f})</span>")
-            else:
-                negara_insight.append(f"<span style='color:#fbc02d'><b>{country}</b>: Dampak lemah/tidak jelas (r = {corr:.2f})</span>")
-    if negara_insight:
-        st.markdown("<br>".join(negara_insight), unsafe_allow_html=True)
-    else:
-        st.info("Belum cukup data untuk insight per negara.")
-else:
-    st.info("Insight per negara akan muncul jika data emisi CO₂ tersedia dan terfilter.")
-
 # --- Visualisasi 4: Data Table ---
 st.subheader("Tabel Data Eksplorasi Renewable Capacity per Negara & Tahun")
-filtered_table = filtered.copy()
-
-# Buat dropdown filter untuk setiap kolom
+filtered_table = df.copy()
 col1, col2, col3 = st.columns(3)
 with col1:
     country_opt = ['(Semua)'] + sorted(filtered_table['Country'].unique().tolist())
-    country_sel = st.selectbox('Filter Country', country_opt)
+    country_sel = st.selectbox('Filter Country', country_opt, key='table-country')
     if country_sel != '(Semua)':
         filtered_table = filtered_table[filtered_table['Country'] == country_sel]
 with col2:
     year_opt = ['(Semua)'] + sorted(filtered_table['Year'].unique().tolist())
-    year_sel = st.selectbox('Filter Year', year_opt)
+    year_sel = st.selectbox('Filter Year', year_opt, key='table-year')
     if year_sel != '(Semua)':
         filtered_table = filtered_table[filtered_table['Year'] == year_sel]
 with col3:
-    # Value biasanya numerik, bisa filter rentang jika mau
     min_val, max_val = float(filtered_table['Renewable Capacity (W/capita)'].min()), float(filtered_table['Renewable Capacity (W/capita)'].max())
-    value_range = st.slider('Filter Renewable Capacity (W/capita)', min_val, max_val, (min_val, max_val))
+    value_range = st.slider('Filter Renewable Capacity (W/capita)', min_val, max_val, (min_val, max_val), key='table-value')
     filtered_table = filtered_table[(filtered_table['Renewable Capacity (W/capita)'] >= value_range[0]) & (filtered_table['Renewable Capacity (W/capita)'] <= value_range[1])]
-
 st.dataframe(filtered_table)
 
 # 7. Download Data
