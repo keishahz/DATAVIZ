@@ -92,8 +92,9 @@ vis1_countries = st.multiselect('Pilih negara (visualisasi 1)', countries, defau
 vis1_year_min, vis1_year_max = int(df['Year'].min()), int(df['Year'].max())
 vis1_years = st.slider('Pilih rentang tahun (visualisasi 1)', vis1_year_min, vis1_year_max, (vis1_year_min, vis1_year_max), key='v1-year')
 vis1_filtered = df[(df['Country'].isin(vis1_countries)) & (df['Year'] >= vis1_years[0]) & (df['Year'] <= vis1_years[1])]
+grouped = vis1_filtered.groupby(['Year', 'Country'], as_index=False)[['Renewable Capacity (W/capita)']].mean()
 fig1 = px.line(
-    vis1_filtered.groupby(['Year', 'Country'], as_index=False).mean(),
+    grouped,
     x='Year',
     y='Renewable Capacity (W/capita)',
     color='Country',
@@ -115,8 +116,9 @@ if 'df_merged' in locals():
     filtered_merged = df_merged[(df_merged['Country'].isin(vis2_countries)) & (df_merged['Year'] >= vis2_years[0]) & (df_merged['Year'] <= vis2_years[1])]
     st.subheader("Tren Emisi CO₂ per Negara")
     st.markdown("Tren ini memperlihatkan perubahan emisi CO₂ seiring waktu. Penurunan emisi dapat menjadi indikasi keberhasilan transisi energi terbarukan.")
+    grouped2 = filtered_merged.groupby(['Year', 'Country'], as_index=False)[['CO2 Emissions (Mt CO2e)']].mean()
     fig2 = px.line(
-        filtered_merged.groupby(['Year', 'Country'], as_index=False).mean(),
+        grouped2,
         x='Year',
         y='CO2 Emissions (Mt CO2e)',
         color='Country',
