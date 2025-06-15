@@ -286,3 +286,5 @@ try:
             ''', unsafe_allow_html=True)
 except Exception as e:
     st.warning(f"Gagal memuat atau memproses data orang terdampak bencana: {e}")
+
+
