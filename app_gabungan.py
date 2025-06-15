@@ -229,9 +229,9 @@ with col3:
     min_val, max_val = float(filtered_table['Renewable Capacity (W/capita)'].min()), float(filtered_table['Renewable Capacity (W/capita)'].max())
     value_range = st.slider('Filter Renewable Capacity (W/capita)', min_val, max_val, (min_val, max_val), key='table-value')
     filtered_table = filtered_table[(filtered_table['Renewable Capacity (W/capita)'] >= value_range[0]) & (filtered_table['Renewable Capacity (W/capita)'] <= value_range[1])]
-# Show only unique values of Renewable Capacity (W/capita) after all filters
-unique_renewable = pd.DataFrame({'Renewable Capacity (W/capita)': filtered_table['Renewable Capacity (W/capita)'].unique()})
-st.dataframe(unique_renewable)
+# Show only one row for each unique Renewable Capacity (W/capita), but keep country and year columns
+filtered_table = filtered_table.drop_duplicates(subset=['Renewable Capacity (W/capita)'])
+st.dataframe(filtered_table)
 
 # 7. Download Data
 st.subheader("Download Data")
