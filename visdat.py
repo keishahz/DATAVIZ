@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import numpy as np
 
 st.set_page_config(page_title="Pacific Islands Renewable Capacity", layout="wide")
 
@@ -13,11 +14,11 @@ def load_data():
     df = df.rename(columns={
         'Pacific Island Countries and territories': 'Country',
         'TIME_PERIOD': 'Year',
-        'OBS_VALUE': 'Value'
+        'OBS_VALUE': 'Renewable Capacity (W/capita)'
     })
-    df = df.dropna(subset=['Year', 'Value'])
+    df = df.dropna(subset=['Year', 'Renewable Capacity (W/capita)'])
     df['Year'] = df['Year'].astype(int)
-    df['Value'] = df['Value'].astype(float)
+    df['Renewable Capacity (W/capita)'] = df['Renewable Capacity (W/capita)'].astype(float)
     return df
 
 df = load_data()
@@ -64,13 +65,13 @@ st.header("Line Chart: Renewable Capacity per Negara")
 country_dropdown = st.selectbox('Pilih satu negara untuk ditampilkan pada line chart', countries)
 filtered_dropdown = df[df['Country'] == country_dropdown]
 # Gabungkan data per tahun (ambil rata-rata jika ada duplikat)
-filtered_dropdown_grouped = filtered_dropdown.groupby('Year', as_index=False)['Value'].mean()
+filtered_dropdown_grouped = filtered_dropdown.groupby('Year', as_index=False)['Renewable Capacity (W/capita)'].mean()
 fig = px.line(
     filtered_dropdown_grouped,
     x='Year',
-    y='Value',
+    y='Renewable Capacity (W/capita)',
     markers=True,
-    labels={'Value': 'Watts per capita', 'Year': 'Tahun'},
+    labels={'Renewable Capacity (W/capita)': 'Watts per capita', 'Year': 'Tahun'},
     title=f'Installed Renewable Electricity-Generating Capacity: {country_dropdown}'
 )
 fig.update_layout(showlegend=False, hovermode='x unified')
@@ -82,32 +83,38 @@ st.markdown("## 📊 Visualisasi Lanjutan & Insight")
 # 1. Bar chart perbandingan antar negara pada tahun tertentu
 st.subheader("Perbandingan Kapasitas Antar Negara (Bar Chart)")
 year_bar = st.slider('Pilih tahun untuk perbandingan antar negara', int(df['Year'].min()), int(df['Year'].max()), int(df['Year'].max()))
-df_bar = df[df['Year'] == year_bar].sort_values('Value', ascending=False)
-fig_bar = px.bar(df_bar, x='Country', y='Value', color='Country', labels={'Value': 'Watts per capita', 'Country': 'Negara'}, title=f'Kapasitas Terpasang per Negara ({year_bar})')
+df_bar = df[df['Year'] == year_bar].sort_values('Renewable Capacity (W/capita)', ascending=False)
+fig_bar = px.bar(df_bar, x='Country', y='Renewable Capacity (W/capita)', color='Country', labels={'Renewable Capacity (W/capita)': 'Watts per capita', 'Country': 'Negara'}, title=f'Kapasitas Terpasang per Negara ({year_bar})')
 st.plotly_chart(fig_bar, use_container_width=True)
 
 # 2. Growth rate line chart
 st.subheader("Tren Pertumbuhan Kapasitas (Growth Rate)")
 growth_df = df.copy()
-growth_df['Growth'] = growth_df.groupby('Country')['Value'].pct_change() * 100
+growth_df['Growth'] = growth_df.groupby('Country')['Renewable Capacity (W/capita)'].pct_change() * 100
 growth_filtered = growth_df[growth_df['Country'].isin(selected_countries)]
 fig_growth = px.line(growth_filtered, x='Year', y='Growth', color='Country', markers=True, labels={'Growth': 'Growth Rate (%)', 'Year': 'Tahun'}, title='Persentase Pertumbuhan Kapasitas per Tahun')
 st.plotly_chart(fig_growth, use_container_width=True)
 
 # 3. Highlight negara dengan pertumbuhan tercepat/terlambat
-growth_summary = growth_df.groupby('Country')['Growth'].mean().reset_index()
-highest = growth_summary.loc[growth_summary['Growth'].idxmax()]
-lowest = growth_summary.loc[growth_summary['Growth'].idxmin()]
-st.info(f"Negara dengan rata-rata pertumbuhan tercepat: **{highest['Country']}** ({highest['Growth']:.2f}%)")
-st.warning(f"Negara dengan rata-rata pertumbuhan terlambat: **{lowest['Country']}** ({lowest['Growth']:.2f}%)")
+# Abaikan inf, -inf, dan NaN
+valid_growth = growth_df.replace([np.inf, -np.inf], np.nan)
+growth_summary = valid_growth.groupby('Country')['Growth'].mean().reset_index()
+growth_summary = growth_summary.dropna(subset=['Growth'])
+if not growth_summary.empty:
+    highest = growth_summary.loc[growth_summary['Growth'].idxmax()]
+    lowest = growth_summary.loc[growth_summary['Growth'].idxmin()]
+    st.info(f"Negara dengan rata-rata pertumbuhan tercepat: **{highest['Country']}** ({highest['Growth']:.2f}%)")
+    st.warning(f"Negara dengan rata-rata pertumbuhan terlambat: **{lowest['Country']}** ({lowest['Growth']:.2f}%)")
+else:
+    st.info("Tidak ada data pertumbuhan yang valid untuk ditampilkan.")
 
 # 4. Boxplot distribusi kapasitas per tahun
 st.subheader("Distribusi Kapasitas per Tahun (Boxplot)")
-fig_box = px.box(df, x='Year', y='Value', points='all', labels={'Value': 'Watts per capita', 'Year': 'Tahun'}, title='Sebaran Kapasitas Terpasang per Tahun')
+fig_box = px.box(df, x='Year', y='Renewable Capacity (W/capita)', points='all', labels={'Renewable Capacity (W/capita)': 'Watts per capita', 'Year': 'Tahun'}, title='Sebaran Kapasitas Terpasang per Tahun')
 st.plotly_chart(fig_box, use_container_width=True)
 
 # 5. Statistik ringkas
-desc = df['Value'].describe()
+desc = df['Renewable Capacity (W/capita)'].describe()
 st.markdown(f"""
 **Statistik Ringkas (Seluruh Data):**
 - Rata-rata: `{desc['mean']:.2f}`
@@ -117,7 +124,7 @@ st.markdown(f"""
 """)
 
 # 6. Data Table dengan filter per kolom
-st.subheader("Data Tabel dengan Filter Kolom")
+st.subheader("Tabel Data Eksplorasi Renewable Capacity per Negara & Tahun")
 filtered_table = filtered.copy()
 
 # Buat dropdown filter untuk setiap kolom
@@ -134,9 +141,9 @@ with col2:
         filtered_table = filtered_table[filtered_table['Year'] == year_sel]
 with col3:
     # Value biasanya numerik, bisa filter rentang jika mau
-    min_val, max_val = float(filtered_table['Value'].min()), float(filtered_table['Value'].max())
-    value_range = st.slider('Filter Value', min_val, max_val, (min_val, max_val))
-    filtered_table = filtered_table[(filtered_table['Value'] >= value_range[0]) & (filtered_table['Value'] <= value_range[1])]
+    min_val, max_val = float(filtered_table['Renewable Capacity (W/capita)'].min()), float(filtered_table['Renewable Capacity (W/capita)'].max())
+    value_range = st.slider('Filter Renewable Capacity (W/capita)', min_val, max_val, (min_val, max_val))
+    filtered_table = filtered_table[(filtered_table['Renewable Capacity (W/capita)'] >= value_range[0]) & (filtered_table['Renewable Capacity (W/capita)'] <= value_range[1])]
 
 st.dataframe(filtered_table)
 
