@@ -26,31 +26,43 @@ df = load_data()
 countries = sorted(df['Country'].unique())
 
 # Load dan transformasi data emisi CO2
-co2_path = r'C:\Users\Lenovo\Downloads\API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349\API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349.csv'
+co2_filenames = [
+    'API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349.csv',
+    'API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349/API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349.csv',
+    r'C:\Users\Lenovo\Downloads\API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349\API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349.csv'
+]
+co2_path = None
+for fname in co2_filenames:
+    if os.path.exists(fname):
+        co2_path = fname
+        break
 try:
-    df_co2 = pd.read_csv(co2_path, skiprows=4)
-    df_co2_long = df_co2.melt(
-        id_vars=['Country Name'],
-        var_name='Year',
-        value_name='CO2 Emissions (Mt CO2e)'
-    )
-    df_co2_long = df_co2_long.rename(columns={'Country Name': 'Country'})
-    df_co2_long['Year'] = pd.to_numeric(df_co2_long['Year'], errors='coerce')
-    df_co2_long = df_co2_long.dropna(subset=['Year'])
-    # Gabungkan dengan data utama (df)
-    df_merged = pd.merge(df, df_co2_long, on=['Country', 'Year'], how='left')
-    # Contoh visualisasi gabungan: Scatter plot Renewable Capacity vs CO2 Emissions
-    st.subheader("Kapasitas Terbarukan vs Emisi CO₂")
-    st.markdown("Visualisasi ini memperlihatkan hubungan antara kapasitas listrik terbarukan per kapita dan emisi CO₂ per negara per tahun.")
-    fig_scatter = px.scatter(
-        df_merged.dropna(subset=['CO2 Emissions (Mt CO2e)']),
-        x='Renewable Capacity (W/capita)',
-        y='CO2 Emissions (Mt CO2e)',
-        color='Country',
-        hover_data=['Year'],
-        title='Renewable Capacity vs CO2 Emissions'
-    )
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    if co2_path:
+        df_co2 = pd.read_csv(co2_path, skiprows=4)
+        df_co2_long = df_co2.melt(
+            id_vars=['Country Name'],
+            var_name='Year',
+            value_name='CO2 Emissions (Mt CO2e)'
+        )
+        df_co2_long = df_co2_long.rename(columns={'Country Name': 'Country'})
+        df_co2_long['Year'] = pd.to_numeric(df_co2_long['Year'], errors='coerce')
+        df_co2_long = df_co2_long.dropna(subset=['Year'])
+        # Gabungkan dengan data utama (df)
+        df_merged = pd.merge(df, df_co2_long, on=['Country', 'Year'], how='left')
+        # Contoh visualisasi gabungan: Scatter plot Renewable Capacity vs CO2 Emissions
+        st.subheader("Kapasitas Terbarukan vs Emisi CO₂")
+        st.markdown("Visualisasi ini memperlihatkan hubungan antara kapasitas listrik terbarukan per kapita dan emisi CO₂ per negara per tahun.")
+        fig_scatter = px.scatter(
+            df_merged.dropna(subset=['CO2 Emissions (Mt CO2e)']),
+            x='Renewable Capacity (W/capita)',
+            y='CO2 Emissions (Mt CO2e)',
+            color='Country',
+            hover_data=['Year'],
+            title='Renewable Capacity vs CO2 Emissions'
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+    else:
+        st.warning("File data emisi CO₂ tidak ditemukan di folder project atau Downloads.")
 except Exception as e:
     st.warning(f"Gagal memuat atau menggabungkan data emisi CO₂: {e}")
 
@@ -173,4 +185,3 @@ st.download_button(
     file_name='blue_pacific_2050_data.csv',
     mime='text/csv',
 )
-
