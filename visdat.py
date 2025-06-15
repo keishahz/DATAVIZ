@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Pacific Islands Renewable Capacity", layout="wide")
 
@@ -156,24 +157,7 @@ else:
     st.warning("Data emisi CO₂ tidak tersedia. Silakan pastikan file CO₂ sudah ada di folder project.")
 
 # --- Visualisasi 4: Data Table ---
-st.subheader("Tabel Data Eksplorasi Renewable Capacity per Negara & Tahun")
-filtered_table = df.copy()
-col1, col2, col3 = st.columns(3)
-with col1:
-    country_opt = ['(Semua)'] + sorted(filtered_table['Country'].unique().tolist())
-    country_sel = st.selectbox('Filter Country', country_opt, key='table-country')
-    if country_sel != '(Semua)':
-        filtered_table = filtered_table[filtered_table['Country'] == country_sel]
-with col2:
-    year_opt = ['(Semua)'] + sorted(filtered_table['Year'].unique().tolist())
-    year_sel = st.selectbox('Filter Year', year_opt, key='table-year')
-    if year_sel != '(Semua)':
-        filtered_table = filtered_table[filtered_table['Year'] == year_sel]
-with col3:
-    min_val, max_val = float(filtered_table['Renewable Capacity (W/capita)'].min()), float(filtered_table['Renewable Capacity (W/capita)'].max())
-    value_range = st.slider('Filter Renewable Capacity (W/capita)', min_val, max_val, (min_val, max_val), key='table-value')
-    filtered_table = filtered_table[(filtered_table['Renewable Capacity (W/capita)'] >= value_range[0]) & (filtered_table['Renewable Capacity (W/capita)'] <= value_range[1])]
-st.dataframe(filtered_table)
+# (Bagian visualisasi tabel data eksplorasi renewable capacity dihapus sesuai permintaan)
 
 # 7. Download Data
 st.subheader("Download Data")
@@ -184,3 +168,130 @@ st.download_button(
     file_name='blue_pacific_2050_data.csv',
     mime='text/csv',
 )
+
+# =====================
+# VISUALISASI ORANG TERDAMPAK BENCANA DI PASIFIK
+# =====================
+st.header("Visualisasi Jumlah Orang Terdampak Bencana di Pasifik")
+
+# Baca data ulang (pastikan path benar, gunakan df asli dari file, bukan hasil load_data yang sudah di-trim)
+df_bencana = pd.read_csv('Blue Pacific 2050_ Climate Change And Disasters (Thematic Area 5) data.csv')
+df_bencana.columns = df_bencana.columns.str.strip()
+if 'Pacific Island Countries and territories' in df_bencana.columns:
+    df_bencana = df_bencana.rename(columns={'Pacific Island Countries and territories': 'Country'})
+
+# Otomatis cari kolom value dan year yang benar
+value_col = None
+year_col = None
+# Prioritaskan 'Observation value' jika ada isian, jika tidak baru 'OBS_VALUE'
+if 'Observation value' in df_bencana.columns and df_bencana['Observation value'].notna().any():
+    value_col = 'Observation value'
+elif 'OBS_VALUE' in df_bencana.columns and df_bencana['OBS_VALUE'].notna().any():
+    value_col = 'OBS_VALUE'
+for col in ['Year', 'TIME_PERIOD', 'Time']:
+    if col in df_bencana.columns:
+        year_col = col
+        break
+
+if value_col is None or year_col is None:
+    st.error('Kolom nilai (Observation value/OBS_VALUE) atau tahun (Year/TIME_PERIOD/Time) tidak ditemukan di dataset.')
+else:
+    # Filter hanya indikator 'Number of people affected by disaster'
+    disaster_indicator = 'Number of people affected by disaster'
+    if 'Indicator' in df_bencana.columns:
+        df_disaster = df_bencana[df_bencana['Indicator'] == disaster_indicator]
+    else:
+        df_disaster = pd.DataFrame()  # Kolom tidak ada
+
+    if df_disaster.empty:
+        st.warning('Tidak ada data orang terdampak bencana di dataset ini.')
+    else:
+        st.subheader('Grafik Jumlah Orang Terdampak Bencana per Negara (Total Seluruh Tahun)')
+        # Hitung total orang terdampak per negara
+        total_per_country = df_disaster.groupby('Country')[value_col].sum().sort_values(ascending=False)
+        fig, ax = plt.subplots(figsize=(12,6))
+        total_per_country.plot(kind='bar', ax=ax, color='tomato')
+        ax.set_xlabel('Negara')
+        ax.set_ylabel('Total Orang Terdampak')
+        ax.set_title('Total Orang Terdampak Bencana per Negara (Akumulasi Seluruh Tahun)')
+        st.pyplot(fig)
+
+        st.subheader('Grafik Jumlah Orang Terdampak Bencana per Negara per Tahun')
+        # Pilih negara
+        negara_pilih = st.selectbox('Pilih Negara (Bencana)', sorted(df_disaster['Country'].unique()), key='disaster-country')
+        df_negara = df_disaster[df_disaster['Country'] == negara_pilih]
+        fig2, ax2 = plt.subplots(figsize=(10,5))
+        ax2.plot(df_negara[year_col], df_negara[value_col], marker='o', color='royalblue')
+        ax2.set_xlabel('Tahun')
+        ax2.set_ylabel('Jumlah Orang Terdampak')
+        ax2.set_title(f'Jumlah Orang Terdampak Bencana di {negara_pilih} per Tahun')
+        st.pyplot(fig2)
+
+# =====================
+# PERBANDINGAN EMISI KARBON VS ORANG TERDAMPAK BENCANA (PER NEGARA & TAHUN)
+# =====================
+st.header("Perbandingan Emisi Karbon vs Jumlah Orang Terdampak Bencana")
+
+# --- Gabungkan data emisi CO2 dan data bencana berdasarkan negara & tahun ---
+# Ambil data bencana (Fiji, dst) dari df_bencana (sudah diolah sebelumnya)
+if 'df_bencana' not in globals():
+    df_bencana = pd.read_csv('Blue Pacific 2050_ Climate Change And Disasters (Thematic Area 5) data.csv')
+    df_bencana.columns = df_bencana.columns.str.strip()
+    if 'Pacific Island Countries and territories' in df_bencana.columns:
+        df_bencana = df_bencana.rename(columns={'Pacific Island Countries and territories': 'Country'})
+
+# Kolom value dan tahun untuk bencana
+bencana_value_col = None
+bencana_year_col = None
+if 'Observation value' in df_bencana.columns and df_bencana['Observation value'].notna().any():
+    bencana_value_col = 'Observation value'
+elif 'OBS_VALUE' in df_bencana.columns and df_bencana['OBS_VALUE'].notna().any():
+    bencana_value_col = 'OBS_VALUE'
+for col in ['Year', 'TIME_PERIOD', 'Time']:
+    if col in df_bencana.columns:
+        bencana_year_col = col
+        break
+
+# Filter data bencana hanya untuk indikator orang terdampak
+if bencana_value_col and bencana_year_col and 'Indicator' in df_bencana.columns:
+    df_disaster = df_bencana[df_bencana['Indicator'] == 'Number of people affected by disaster']
+    # Siapkan data emisi CO2 (df_co2_long sudah ada jika integrasi CO2 berhasil)
+    if 'df_co2_long' in locals():
+        # Normalisasi nama negara agar konsisten
+        df_disaster['Country'] = df_disaster['Country'].str.strip()
+        df_co2_long['Country'] = df_co2_long['Country'].str.strip()
+        # Gabungkan berdasarkan Country & Year
+        df_disaster['Year'] = pd.to_numeric(df_disaster[bencana_year_col], errors='coerce')
+        df_impact_emisi = pd.merge(
+            df_disaster,
+            df_co2_long,
+            on=['Country', 'Year'],
+            how='inner'
+        )
+        # Pilih negara
+        negara_pilih = st.selectbox('Pilih Negara (Perbandingan Emisi vs Orang Terdampak)', sorted(df_impact_emisi['Country'].unique()), key='impact-emisi-country')
+        df_negara = df_impact_emisi[df_impact_emisi['Country'] == negara_pilih]
+        # Plot dual axis (ukuran default)
+        import matplotlib.ticker as mticker
+        fig, ax1 = plt.subplots(figsize=(10,5))
+        color1 = 'tab:blue'
+        color2 = 'tab:red'
+        ax1.set_xlabel('Tahun')
+        ax1.set_ylabel('Orang Terdampak', color=color1)
+        ax1.plot(df_negara['Year'], df_negara[bencana_value_col], marker='o', color=color1, label='Orang Terdampak')
+        ax1.tick_params(axis='y', labelcolor=color1)
+        ax1.yaxis.set_major_formatter(mticker.StrMethodFormatter('{x:,.0f}'))
+        ax2 = ax1.twinx()
+        ax2.set_ylabel('Emisi CO₂ (Mt)', color=color2)
+        ax2.plot(df_negara['Year'], df_negara['CO2 Emissions (Mt CO2e)'], marker='s', color=color2, label='Emisi CO₂')
+        ax2.tick_params(axis='y', labelcolor=color2)
+        fig.suptitle(f'Perbandingan Emisi CO₂ vs Orang Terdampak Bencana di {negara_pilih}')
+        fig.tight_layout()
+        st.pyplot(fig)
+        st.markdown("""
+Grafik ini memperlihatkan bahwa jumlah orang terdampak bencana tidak selalu sejalan dengan emisi karbon negara tersebut. Negara Pasifik bisa mengalami bencana besar meski emisinya sangat kecil, menegaskan isu ketidakadilan iklim global.
+""")
+    else:
+        st.info('Data emisi CO₂ tidak tersedia atau gagal diproses.')
+else:
+    st.info('Data bencana tidak tersedia atau gagal diproses.')
