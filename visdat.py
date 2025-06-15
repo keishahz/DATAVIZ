@@ -1,7 +1,12 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+
+try:
+    import seaborn as sns
+    seaborn_available = True
+except ImportError:
+    seaborn_available = False
 
 st.set_page_config(page_title="Pacific Islands Renewable Capacity", layout="wide")
 
@@ -61,11 +66,14 @@ elif page == "Bar Chart (Latest Year)":
 
 elif page == "Heatmap":
     st.header("Heatmap: Country vs Year")
-    heatmap_df = df.pivot_table(index='Country', columns='Year', values='Value')
-    fig, ax = plt.subplots(figsize=(16, 8))
-    sns.heatmap(heatmap_df, cmap='YlGnBu', ax=ax, cbar_kws={'label': 'Watts per capita'})
-    ax.set_title('Renewable Capacity Heatmap')
-    st.pyplot(fig)
+    if seaborn_available:
+        heatmap_df = df.pivot_table(index='Country', columns='Year', values='Value')
+        fig, ax = plt.subplots(figsize=(16, 8))
+        sns.heatmap(heatmap_df, cmap='YlGnBu', ax=ax, cbar_kws={'label': 'Watts per capita'})
+        ax.set_title('Renewable Capacity Heatmap')
+        st.pyplot(fig)
+    else:
+        st.warning('Seaborn is not installed. Please add seaborn to requirements.txt or install it to view the heatmap.')
 
 elif page == "Data Table":
     st.header("Data Table Preview")
