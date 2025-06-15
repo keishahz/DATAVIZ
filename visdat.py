@@ -23,20 +23,25 @@ def load_data():
 df = load_data()
 countries = sorted(df['Country'].unique())
 
+st.image(
+    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
+    caption="Pacific Islands - Unsplash",
+    use_column_width=True
+)
+
 st.title("Blue Pacific 2050: Climate Change & Disasters Data Explorer")
-st.markdown("Visualisasi interaktif seperti <a href='https://holtzy.github.io/pacific-challenge/' target='_blank'>Pacific Challenge</a>.", unsafe_allow_html=True)
 
 st.markdown("""
 <div style='background-color:#e3f2fd; padding:16px; border-radius:8px; margin-bottom:20px;'>
-    <b>Deskripsi Visualisasi:</b><br>
-    Grafik di bawah ini menampilkan perkembangan kapasitas terpasang listrik terbarukan (dalam watt per kapita) di negara-negara Pasifik dari tahun ke tahun.<br>
+    <b style='color:#1976d2;'>Deskripsi Visualisasi:</b><br>
+    <span style='color:#333;'>Grafik di bawah ini menampilkan perkembangan kapasitas terpasang listrik terbarukan (dalam watt per kapita) di negara-negara Pasifik dari tahun ke tahun.</span><br>
     <ul>
-        <li><b>Setiap garis</b> mewakili satu negara.</li>
-        <li><b>Hover</b> pada garis untuk melihat detail nilai pada tahun tertentu.</li>
-        <li><b>Pilih negara</b> di sidebar untuk membandingkan negara tertentu.</li>
-        <li>Data diambil dari <i>Blue Pacific 2050 - Climate Change And Disasters (Thematic Area 5)</i>.</li>
+        <li style='color:#388e3c;'><b>Setiap garis</b> mewakili satu negara.</li>
+        <li style='color:#f57c00;'>Hover</li> <span style='color:#333;'>pada garis untuk melihat detail nilai pada tahun tertentu.</span>
+        <li style='color:#0288d1;'>Pilih negara</li> <span style='color:#333;'>di sidebar untuk membandingkan negara tertentu.</span>
+        <li style='color:#7b1fa2;'>Data diambil dari <i>Blue Pacific 2050 - Climate Change And Disasters (Thematic Area 5)</i>.</li>
     </ul>
-    Visualisasi ini membantu memahami tren adopsi energi terbarukan di kawasan Pasifik dan membandingkan antar negara secara interaktif.
+    <span style='color:#333;'>Visualisasi ini membantu memahami tren adopsi energi terbarukan di kawasan Pasifik dan membandingkan antar negara secara interaktif.</span>
 </div>
 """, unsafe_allow_html=True)
 
