@@ -58,5 +58,59 @@ fig = px.line(
 fig.update_layout(legend_title_text='Negara', hovermode='x unified')
 st.plotly_chart(fig, use_container_width=True)
 
+# Tambahan fitur visualisasi dan insight
+st.markdown("## 📊 Visualisasi Lanjutan & Insight")
+
+# 1. Bar chart perbandingan antar negara pada tahun tertentu
+st.subheader("Perbandingan Kapasitas Antar Negara (Bar Chart)")
+year_bar = st.slider('Pilih tahun untuk perbandingan antar negara', int(df['Year'].min()), int(df['Year'].max()), int(df['Year'].max()))
+df_bar = df[df['Year'] == year_bar].sort_values('Value', ascending=False)
+fig_bar = px.bar(df_bar, x='Country', y='Value', color='Country', labels={'Value': 'Watts per capita', 'Country': 'Negara'}, title=f'Kapasitas Terpasang per Negara ({year_bar})')
+st.plotly_chart(fig_bar, use_container_width=True)
+
+# 2. Growth rate line chart
+st.subheader("Tren Pertumbuhan Kapasitas (Growth Rate)")
+growth_df = df.copy()
+growth_df['Growth'] = growth_df.groupby('Country')['Value'].pct_change() * 100
+growth_filtered = growth_df[growth_df['Country'].isin(selected_countries)]
+fig_growth = px.line(growth_filtered, x='Year', y='Growth', color='Country', markers=True, labels={'Growth': 'Growth Rate (%)', 'Year': 'Tahun'}, title='Persentase Pertumbuhan Kapasitas per Tahun')
+st.plotly_chart(fig_growth, use_container_width=True)
+
+# 3. Highlight negara dengan pertumbuhan tercepat/terlambat
+growth_summary = growth_df.groupby('Country')['Growth'].mean().reset_index()
+highest = growth_summary.loc[growth_summary['Growth'].idxmax()]
+lowest = growth_summary.loc[growth_summary['Growth'].idxmin()]
+st.info(f"Negara dengan rata-rata pertumbuhan tercepat: **{highest['Country']}** ({highest['Growth']:.2f}%)")
+st.warning(f"Negara dengan rata-rata pertumbuhan terlambat: **{lowest['Country']}** ({lowest['Growth']:.2f}%)")
+
+# 4. Boxplot distribusi kapasitas per tahun
+st.subheader("Distribusi Kapasitas per Tahun (Boxplot)")
+fig_box = px.box(df, x='Year', y='Value', points='all', labels={'Value': 'Watts per capita', 'Year': 'Tahun'}, title='Sebaran Kapasitas Terpasang per Tahun')
+st.plotly_chart(fig_box, use_container_width=True)
+
+# 5. Statistik ringkas
+desc = df['Value'].describe()
+st.markdown(f"""
+**Statistik Ringkas (Seluruh Data):**
+- Rata-rata: `{desc['mean']:.2f}`
+- Median: `{desc['50%']:.2f}`
+- Maksimum: `{desc['max']:.2f}`
+- Minimum: `{desc['min']:.2f}`
+""")
+
+# 6. Data Table
+st.subheader("Data Tabel")
+st.dataframe(df)
+
+# 7. Download Data
+st.subheader("Download Data")
+csv = df.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="Download CSV",
+    data=csv,
+    file_name='blue_pacific_2050_data.csv',
+    mime='text/csv',
+)
+
 st.markdown("---")
 st.markdown("Data source: Blue Pacific 2050 - Climate Change And Disasters (Thematic Area 5)")
