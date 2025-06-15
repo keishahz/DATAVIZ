@@ -23,35 +23,9 @@ def load_data():
 df = load_data()
 countries = sorted(df['Country'].unique())
 
-# Tambahkan CSS untuk background image dengan opacity rendah
-st.markdown(
-    f"""
-    <style>
-    .stApp {{
-        background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80');
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        position: relative;
-    }}
-    .stApp::before {{
-        content: "";
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: inherit;
-        opacity: 0.10;
-        z-index: 0;
-    }}
-    .block-container {{
-        position: relative;
-        z-index: 1;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-st.title("Blue Pacific 2050: Climate Change & Disasters Data Explorer")
+st.markdown("""
+<h1 style='color:#fff; text-align:center; font-size:2.8rem; font-weight:700; margin-bottom:0.5em;'>Blue Pacific 2050: Climate Change & Disasters Data Explorer</h1>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <div style='background-color:#e3f2fd; padding:16px; border-radius:8px; margin-bottom:20px;'>
@@ -67,22 +41,39 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #102542 !important;
+    }
+    section[data-testid="stSidebar"] {
+        background-color: #061126 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 st.sidebar.header("Filter Negara")
-selected_countries = st.sidebar.multiselect('Pilih negara', countries, default=countries[:5])
+selected_countries = st.sidebar.multiselect('Pilih negara', countries, default=countries)
 
 filtered = df[df['Country'].isin(selected_countries)]
 
-st.header("Line Chart Interaktif: Renewable Capacity per Negara")
+st.header("Line Chart: Renewable Capacity per Negara")
+country_dropdown = st.selectbox('Pilih satu negara untuk ditampilkan pada line chart', countries)
+filtered_dropdown = df[df['Country'] == country_dropdown]
+# Gabungkan data per tahun (ambil rata-rata jika ada duplikat)
+filtered_dropdown_grouped = filtered_dropdown.groupby('Year', as_index=False)['Value'].mean()
 fig = px.line(
-    filtered,
+    filtered_dropdown_grouped,
     x='Year',
     y='Value',
-    color='Country',
     markers=True,
     labels={'Value': 'Watts per capita', 'Year': 'Tahun'},
-    title='Installed Renewable Electricity-Generating Capacity (Interactive)'
+    title=f'Installed Renewable Electricity-Generating Capacity: {country_dropdown}'
 )
-fig.update_layout(legend_title_text='Negara', hovermode='x unified')
+fig.update_layout(showlegend=False, hovermode='x unified')
 st.plotly_chart(fig, use_container_width=True)
 
 # Tambahan fitur visualisasi dan insight
@@ -125,9 +116,29 @@ st.markdown(f"""
 - Minimum: `{desc['min']:.2f}`
 """)
 
-# 6. Data Table
-st.subheader("Data Tabel")
-st.dataframe(df)
+# 6. Data Table dengan filter per kolom
+st.subheader("Data Tabel dengan Filter Kolom")
+filtered_table = filtered.copy()
+
+# Buat dropdown filter untuk setiap kolom
+col1, col2, col3 = st.columns(3)
+with col1:
+    country_opt = ['(Semua)'] + sorted(filtered_table['Country'].unique().tolist())
+    country_sel = st.selectbox('Filter Country', country_opt)
+    if country_sel != '(Semua)':
+        filtered_table = filtered_table[filtered_table['Country'] == country_sel]
+with col2:
+    year_opt = ['(Semua)'] + sorted(filtered_table['Year'].unique().tolist())
+    year_sel = st.selectbox('Filter Year', year_opt)
+    if year_sel != '(Semua)':
+        filtered_table = filtered_table[filtered_table['Year'] == year_sel]
+with col3:
+    # Value biasanya numerik, bisa filter rentang jika mau
+    min_val, max_val = float(filtered_table['Value'].min()), float(filtered_table['Value'].max())
+    value_range = st.slider('Filter Value', min_val, max_val, (min_val, max_val))
+    filtered_table = filtered_table[(filtered_table['Value'] >= value_range[0]) & (filtered_table['Value'] <= value_range[1])]
+
+st.dataframe(filtered_table)
 
 # 7. Download Data
 st.subheader("Download Data")
