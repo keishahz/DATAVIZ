@@ -295,3 +295,4 @@ Grafik ini memperlihatkan bahwa jumlah orang terdampak bencana tidak selalu seja
         st.info('Data emisi CO₂ tidak tersedia atau gagal diproses.')
 else:
     st.info('Data bencana tidak tersedia atau gagal diproses.')
+    
