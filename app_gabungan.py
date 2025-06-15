@@ -96,7 +96,7 @@ st.markdown(
 )
 
 # --- VISUALIZATION 1: Renewable Capacity Trend ---
-st.subheader("Renewable Electricity Capacity Trend per Country")
+st.header("Renewable Electricity Capacity Trend per Country")
 st.markdown("This trend shows the clean energy transition efforts in Pacific countries.")
 vis1_countries = st.multiselect('Select countries (visualization 1)', countries, default=countries, key='v1-country')
 vis1_year_min, vis1_year_max = int(df['Year'].min()), int(df['Year'].max())
@@ -152,7 +152,7 @@ st.info(f"Insight: {desc}")
 
 # --- VISUALIZATION 2: CO2 Emissions Trend (if data available) ---
 if 'df_merged' in locals():
-    st.subheader("CO₂ Emissions Trend per Country")
+    st.header("CO₂ Emissions Trend per Country")
     st.markdown("This trend shows the change in CO₂ emissions over time. A decrease in emissions can indicate a successful renewable energy transition.")
     vis2_countries = st.multiselect('Select countries (visualization 2)', countries, default=countries, key='v2-country')
     vis2_year_min, vis2_year_max = int(df['Year'].min()), int(df['Year'].max())
@@ -189,7 +189,7 @@ if 'df_merged' in locals():
 
 # --- VISUALIZATION 3: Scatter Plot Renewable Capacity vs CO2 Emissions ---
 if 'df_merged' in locals():
-    st.subheader("Correlation of Renewable Capacity & CO₂ Emissions")
+    st.header("Correlation of Renewable Capacity & CO₂ Emissions")
     st.markdown("The following scatter plot shows the direct relationship between renewable electricity capacity and CO₂ emissions. Each point represents a country-year.")
     vis3_countries = st.multiselect('Select countries (visualization 3)', countries, default=countries, key='v3-country')
     vis3_year_min, vis3_year_max = int(df['Year'].min()), int(df['Year'].max())
@@ -212,7 +212,7 @@ else:
     st.warning("CO₂ emissions data not available. Please ensure the CO₂ file is present in the project folder.")
 
 # --- VISUALIZATION 4: Data Table ---
-st.subheader("Data Table: Renewable Capacity per Country & Year")
+st.header("Data Table: Renewable Capacity per Country & Year")
 filtered_table = df.copy()
 col1, col2, col3 = st.columns(3)
 with col1:
