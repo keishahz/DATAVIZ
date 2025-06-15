@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import numpy as np
+import os
 
 st.set_page_config(page_title="Pacific Islands Renewable Capacity", layout="wide")
 
@@ -23,6 +24,35 @@ def load_data():
 
 df = load_data()
 countries = sorted(df['Country'].unique())
+
+# Load dan transformasi data emisi CO2
+co2_path = r'C:\Users\Lenovo\Downloads\API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349\API_EN.GHG.CO2.MT.CE.AR5_DS2_en_csv_v2_3349.csv'
+try:
+    df_co2 = pd.read_csv(co2_path, skiprows=4)
+    df_co2_long = df_co2.melt(
+        id_vars=['Country Name'],
+        var_name='Year',
+        value_name='CO2 Emissions (Mt CO2e)'
+    )
+    df_co2_long = df_co2_long.rename(columns={'Country Name': 'Country'})
+    df_co2_long['Year'] = pd.to_numeric(df_co2_long['Year'], errors='coerce')
+    df_co2_long = df_co2_long.dropna(subset=['Year'])
+    # Gabungkan dengan data utama (df)
+    df_merged = pd.merge(df, df_co2_long, on=['Country', 'Year'], how='left')
+    # Contoh visualisasi gabungan: Scatter plot Renewable Capacity vs CO2 Emissions
+    st.subheader("Kapasitas Terbarukan vs Emisi CO₂")
+    st.markdown("Visualisasi ini memperlihatkan hubungan antara kapasitas listrik terbarukan per kapita dan emisi CO₂ per negara per tahun.")
+    fig_scatter = px.scatter(
+        df_merged.dropna(subset=['CO2 Emissions (Mt CO2e)']),
+        x='Renewable Capacity (W/capita)',
+        y='CO2 Emissions (Mt CO2e)',
+        color='Country',
+        hover_data=['Year'],
+        title='Renewable Capacity vs CO2 Emissions'
+    )
+    st.plotly_chart(fig_scatter, use_container_width=True)
+except Exception as e:
+    st.warning(f"Gagal memuat atau menggabungkan data emisi CO₂: {e}")
 
 st.markdown("""
 <h1 style='color:#fff; text-align:center; font-size:2.8rem; font-weight:700; margin-bottom:0.5em;'>Blue Pacific 2050: Climate Change & Disasters Data Explorer</h1>
@@ -56,74 +86,61 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.sidebar.header("Filter Negara")
+# Sidebar filter global
+st.sidebar.header("Filter Global")
 selected_countries = st.sidebar.multiselect('Pilih negara', countries, default=countries)
+year_min, year_max = int(df['Year'].min()), int(df['Year'].max())
+selected_years = st.sidebar.slider('Pilih rentang tahun', year_min, year_max, (year_min, year_max))
 
-filtered = df[df['Country'].isin(selected_countries)]
+# Filter data global
+filtered = df[(df['Country'].isin(selected_countries)) & (df['Year'] >= selected_years[0]) & (df['Year'] <= selected_years[1])]
 
-st.header("Line Chart: Renewable Capacity per Negara")
-country_dropdown = st.selectbox('Pilih satu negara untuk ditampilkan pada line chart', countries)
-filtered_dropdown = df[df['Country'] == country_dropdown]
-# Gabungkan data per tahun (ambil rata-rata jika ada duplikat)
-filtered_dropdown_grouped = filtered_dropdown.groupby('Year', as_index=False)['Renewable Capacity (W/capita)'].mean()
+# --- Visualisasi 1: Line Chart ---
+st.header("Line Chart Interaktif: Renewable Capacity per Negara")
+st.markdown("""
+Visualisasi ini memperlihatkan tren kapasitas listrik terbarukan per kapita di negara-negara Pasifik dari tahun ke tahun. Pilihan negara dan rentang tahun di sidebar akan mempengaruhi seluruh grafik di bawah.
+""")
 fig = px.line(
-    filtered_dropdown_grouped,
+    filtered.groupby(['Year', 'Country'], as_index=False).mean(),
     x='Year',
     y='Renewable Capacity (W/capita)',
+    color='Country',
     markers=True,
-    labels={'Renewable Capacity (W/capita)': 'Watts per capita', 'Year': 'Tahun'},
-    title=f'Installed Renewable Electricity-Generating Capacity: {country_dropdown}'
+    labels={'Renewable Capacity (W/capita)': 'Watt per kapita', 'Year': 'Tahun'},
+    title='Tren Kapasitas Terbarukan per Negara'
 )
-fig.update_layout(showlegend=False, hovermode='x unified')
+fig.update_layout(legend_title_text='Negara', hovermode='x unified')
 st.plotly_chart(fig, use_container_width=True)
 
-# Tambahan fitur visualisasi dan insight
-st.markdown("## 📊 Visualisasi Lanjutan & Insight")
-
-# 1. Bar chart perbandingan antar negara pada tahun tertentu
-st.subheader("Perbandingan Kapasitas Antar Negara (Bar Chart)")
-year_bar = st.slider('Pilih tahun untuk perbandingan antar negara', int(df['Year'].min()), int(df['Year'].max()), int(df['Year'].max()))
-df_bar = df[df['Year'] == year_bar].sort_values('Renewable Capacity (W/capita)', ascending=False)
-fig_bar = px.bar(df_bar, x='Country', y='Renewable Capacity (W/capita)', color='Country', labels={'Renewable Capacity (W/capita)': 'Watts per capita', 'Country': 'Negara'}, title=f'Kapasitas Terpasang per Negara ({year_bar})')
-st.plotly_chart(fig_bar, use_container_width=True)
-
-# 2. Growth rate line chart
-st.subheader("Tren Pertumbuhan Kapasitas (Growth Rate)")
-growth_df = df.copy()
-growth_df['Growth'] = growth_df.groupby('Country')['Renewable Capacity (W/capita)'].pct_change() * 100
-growth_filtered = growth_df[growth_df['Country'].isin(selected_countries)]
-fig_growth = px.line(growth_filtered, x='Year', y='Growth', color='Country', markers=True, labels={'Growth': 'Growth Rate (%)', 'Year': 'Tahun'}, title='Persentase Pertumbuhan Kapasitas per Tahun')
-st.plotly_chart(fig_growth, use_container_width=True)
-
-# 3. Highlight negara dengan pertumbuhan tercepat/terlambat
-# Abaikan inf, -inf, dan NaN
-valid_growth = growth_df.replace([np.inf, -np.inf], np.nan)
-growth_summary = valid_growth.groupby('Country')['Growth'].mean().reset_index()
-growth_summary = growth_summary.dropna(subset=['Growth'])
-if not growth_summary.empty:
-    highest = growth_summary.loc[growth_summary['Growth'].idxmax()]
-    lowest = growth_summary.loc[growth_summary['Growth'].idxmin()]
-    st.info(f"Negara dengan rata-rata pertumbuhan tercepat: **{highest['Country']}** ({highest['Growth']:.2f}%)")
-    st.warning(f"Negara dengan rata-rata pertumbuhan terlambat: **{lowest['Country']}** ({lowest['Growth']:.2f}%)")
-else:
-    st.info("Tidak ada data pertumbuhan yang valid untuk ditampilkan.")
-
-# 4. Boxplot distribusi kapasitas per tahun
-st.subheader("Distribusi Kapasitas per Tahun (Boxplot)")
-fig_box = px.box(df, x='Year', y='Renewable Capacity (W/capita)', points='all', labels={'Renewable Capacity (W/capita)': 'Watts per capita', 'Year': 'Tahun'}, title='Sebaran Kapasitas Terpasang per Tahun')
-st.plotly_chart(fig_box, use_container_width=True)
-
-# 5. Statistik ringkas
-desc = df['Renewable Capacity (W/capita)'].describe()
-st.markdown(f"""
-**Statistik Ringkas (Seluruh Data):**
-- Rata-rata: `{desc['mean']:.2f}`
-- Median: `{desc['50%']:.2f}`
-- Maksimum: `{desc['max']:.2f}`
-- Minimum: `{desc['min']:.2f}`
+# --- Narasi penghubung ---
+st.markdown("""
+Dengan melihat tren di atas, kita dapat mengamati negara mana yang mengalami peningkatan signifikan dalam kapasitas listrik terbarukan. Selanjutnya, kita lihat distribusi dan perbandingan antar negara pada tahun-tahun yang dipilih.
 """)
 
-# 6. Data Table dengan filter per kolom
+# --- Visualisasi 2: Bar Chart ---
+st.subheader("Perbandingan Kapasitas Antar Negara (Bar Chart)")
+latest_year = filtered['Year'].max()
+st.write(f"Menampilkan data untuk tahun: {latest_year}")
+df_bar = filtered[filtered['Year'] == latest_year].sort_values('Renewable Capacity (W/capita)', ascending=False)
+fig_bar = px.bar(df_bar, x='Country', y='Renewable Capacity (W/capita)', color='Country', labels={'Renewable Capacity (W/capita)': 'Watt per kapita', 'Country': 'Negara'}, title=f'Kapasitas Terpasang per Negara ({latest_year})')
+st.plotly_chart(fig_bar, use_container_width=True)
+
+# --- Narasi penghubung ---
+st.markdown("""
+Bar chart di atas memperlihatkan perbandingan kapasitas antar negara pada tahun terakhir yang dipilih. Selanjutnya, kita lihat sebaran (distribusi) kapasitas di seluruh negara dan tahun.
+""")
+
+# --- Visualisasi 3: Boxplot ---
+st.subheader("Distribusi Kapasitas per Tahun (Boxplot)")
+fig_box = px.box(filtered, x='Year', y='Renewable Capacity (W/capita)', points='all', labels={'Renewable Capacity (W/capita)': 'Watt per kapita', 'Year': 'Tahun'}, title='Sebaran Kapasitas Terpasang per Tahun')
+st.plotly_chart(fig_box, use_container_width=True)
+
+# --- Narasi penghubung ---
+st.markdown("""
+Boxplot di atas membantu memahami variasi kapasitas antar negara di setiap tahun. Dengan filter global, Anda bisa fokus pada negara atau periode tertentu untuk analisis lebih dalam.
+""")
+
+# --- Visualisasi 4: Data Table ---
 st.subheader("Tabel Data Eksplorasi Renewable Capacity per Negara & Tahun")
 filtered_table = filtered.copy()
 
@@ -156,6 +173,3 @@ st.download_button(
     file_name='blue_pacific_2050_data.csv',
     mime='text/csv',
 )
-
-st.markdown("---")
-st.markdown("Data source: Blue Pacific 2050 - Climate Change And Disasters (Thematic Area 5)")
