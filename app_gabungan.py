@@ -229,6 +229,8 @@ with col3:
     min_val, max_val = float(filtered_table['Renewable Capacity (W/capita)'].min()), float(filtered_table['Renewable Capacity (W/capita)'].max())
     value_range = st.slider('Filter Renewable Capacity (W/capita)', min_val, max_val, (min_val, max_val), key='table-value')
     filtered_table = filtered_table[(filtered_table['Renewable Capacity (W/capita)'] >= value_range[0]) & (filtered_table['Renewable Capacity (W/capita)'] <= value_range[1])]
+# Show only unique rows in the table
+filtered_table = filtered_table.drop_duplicates()
 st.dataframe(filtered_table)
 
 # 7. Download Data
