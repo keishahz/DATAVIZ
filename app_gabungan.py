@@ -152,12 +152,12 @@ st.info(f"Insight: {desc}")
 
 # --- VISUALISASI 2: Tren Emisi CO2 (jika data tersedia) ---
 if 'df_merged' in locals():
+    st.subheader("Tren Emisi CO₂ per Negara")
+    st.markdown("Tren ini memperlihatkan perubahan emisi CO₂ seiring waktu. Penurunan emisi dapat menjadi indikasi keberhasilan transisi energi terbarukan.")
     vis2_countries = st.multiselect('Pilih negara (visualisasi 2)', countries, default=countries, key='v2-country')
     vis2_year_min, vis2_year_max = int(df['Year'].min()), int(df['Year'].max())
     vis2_years = st.slider('Pilih rentang tahun (visualisasi 2)', vis2_year_min, vis2_year_max, (vis2_year_min, vis2_year_max), key='v2-year')
     filtered_merged = df_merged[(df_merged['Country'].isin(vis2_countries)) & (df_merged['Year'] >= vis2_years[0]) & (df_merged['Year'] <= vis2_years[1])]
-    st.subheader("Tren Emisi CO₂ per Negara")
-    st.markdown("Tren ini memperlihatkan perubahan emisi CO₂ seiring waktu. Penurunan emisi dapat menjadi indikasi keberhasilan transisi energi terbarukan.")
     grouped2 = filtered_merged.groupby(['Year', 'Country'], as_index=False)[['CO2 Emissions (Mt CO2e)']].mean()
     fig2 = px.line(
         grouped2,
