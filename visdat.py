@@ -23,10 +23,32 @@ def load_data():
 df = load_data()
 countries = sorted(df['Country'].unique())
 
-st.image(
-    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
-    caption="Pacific Islands - Unsplash",
-    use_column_width=True
+# Tambahkan CSS untuk background image dengan opacity rendah
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        position: relative;
+    }}
+    .stApp::before {{
+        content: "";
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: inherit;
+        opacity: 0.10;
+        z-index: 0;
+    }}
+    .block-container {{
+        position: relative;
+        z-index: 1;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 st.title("Blue Pacific 2050: Climate Change & Disasters Data Explorer")
