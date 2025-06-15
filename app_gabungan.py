@@ -189,12 +189,12 @@ if 'df_merged' in locals():
 
 # --- VISUALIZATION 3: Scatter Plot Renewable Capacity vs CO2 Emissions ---
 if 'df_merged' in locals():
+    st.subheader("Correlation of Renewable Capacity & CO₂ Emissions")
+    st.markdown("The following scatter plot shows the direct relationship between renewable electricity capacity and CO₂ emissions. Each point represents a country-year.")
     vis3_countries = st.multiselect('Select countries (visualization 3)', countries, default=countries, key='v3-country')
     vis3_year_min, vis3_year_max = int(df['Year'].min()), int(df['Year'].max())
     vis3_years = st.slider('Select year range (visualization 3)', vis3_year_min, vis3_year_max, (vis3_year_min, vis3_year_max), key='v3-year')
     filtered_merged = df_merged[(df_merged['Country'].isin(vis3_countries)) & (df_merged['Year'] >= vis3_years[0]) & (df_merged['Year'] <= vis3_years[1])]
-    st.subheader("Correlation of Renewable Capacity & CO₂ Emissions")
-    st.markdown("The following scatter plot shows the direct relationship between renewable electricity capacity and CO₂ emissions. Each point represents a country-year.")
     fig3_scatter = px.scatter(
         filtered_merged.dropna(subset=['CO2 Emissions (Mt CO2e)']),
         x='Renewable Capacity (W/capita)',
